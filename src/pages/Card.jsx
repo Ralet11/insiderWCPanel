@@ -1,0 +1,9 @@
+import { Paper, Typography } from '@mui/material'
+export default function CardPage() {
+  return (
+    <Paper sx={{ p:2 }}>
+      <Typography variant="h6">Tarjeta</Typography>
+      <Typography variant="body2" color="text.secondary">(Sección reservada, sin contenido por ahora.)</Typography>
+    </Paper>
+  )
+}
