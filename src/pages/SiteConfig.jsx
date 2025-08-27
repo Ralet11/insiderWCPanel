@@ -2,7 +2,8 @@
 import * as React from 'react'
 import {
   Grid, Paper, Typography, TextField, Stack, Button, Alert,
-  InputAdornment, Divider, Box, Avatar, Chip, Slider, LinearProgress
+  InputAdornment, Divider, Box, Avatar, Chip, Slider, LinearProgress,
+  FormControl, InputLabel, Select, MenuItem, FormHelperText
 } from '@mui/material'
 
 // Íconos
@@ -25,8 +26,98 @@ import {
 } from '../api/wcSiteConfig'
 
 /* ============================
-   Mapear server <-> form
+   Fuentes disponibles (Google Fonts opcional)
    ============================ */
+const FONT_OPTIONS = [
+  {
+    key: 'inter',
+    label: 'Inter',
+    css: "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    google: 'family=Inter:wght@400;500;600;700'
+  },
+  {
+    key: 'roboto',
+    label: 'Roboto',
+    css: "Roboto, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif",
+    google: 'family=Roboto:wght@400;500;700'
+  },
+  {
+    key: 'poppins',
+    label: 'Poppins',
+    css: "Poppins, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    google: 'family=Poppins:wght@400;600;700'
+  },
+  {
+    key: 'montserrat',
+    label: 'Montserrat',
+    css: "Montserrat, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    google: 'family=Montserrat:wght@400;600;700'
+  },
+  {
+    key: 'lato',
+    label: 'Lato',
+    css: "Lato, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    google: 'family=Lato:wght@400;700'
+  },
+  {
+    key: 'open-sans',
+    label: 'Open Sans',
+    css: "'Open Sans', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    google: 'family=Open+Sans:wght@400;600;700'
+  },
+  {
+    key: 'noto-sans',
+    label: 'Noto Sans',
+    css: "'Noto Sans', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    google: 'family=Noto+Sans:wght@400;600;700'
+  },
+  {
+    key: 'playfair',
+    label: 'Playfair Display (serif)',
+    css: "'Playfair Display', Georgia, 'Times New Roman', serif",
+    google: 'family=Playfair+Display:wght@400;700'
+  },
+  {
+    key: 'merriweather',
+    label: 'Merriweather (serif)',
+    css: "Merriweather, Georgia, 'Times New Roman', serif",
+    google: 'family=Merriweather:wght@400;700'
+  },
+  {
+    key: 'system',
+    label: 'System UI',
+    css: "system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    google: null
+  }
+]
+
+function normalizeFamilyList(css) {
+  return String(css || '')
+    .toLowerCase()
+    .replace(/['"]/g, '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+}
+function firstFamily(css) {
+  return normalizeFamilyList(css)[0] || ''
+}
+function findFontKeyByCss(css) {
+  const head = firstFamily(css)
+  if (!head) return 'system'
+  for (const f of FONT_OPTIONS) {
+    if (firstFamily(f.css) === head) return f.key
+  }
+  for (const f of FONT_OPTIONS) {
+    if (normalizeFamilyList(f.css).includes(head)) return f.key
+  }
+  return 'custom'
+}
+function fontByKey(key) {
+  return FONT_OPTIONS.find(f => f.key === key) || null
+}
+
+
 function fromServer(cfg) {
   const s = cfg || {}
   return {
@@ -37,7 +128,7 @@ function fromServer(cfg) {
     faviconUrl: s.faviconUrl ?? '',
     fontFamily:
       s.fontFamily ??
-      'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
+      "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     templateKey: s.templateKey ?? 'classic',
     stars: Number.isFinite(Number(s.stars)) ? Number(s.stars) : 0,
     social: {
@@ -72,9 +163,7 @@ function toServer(form) {
   return base
 }
 
-/* ============================
-   ColorField con color picker
-   ============================ */
+
 function ColorField({ label, value, onChange }) {
   const ref = React.useRef(null)
   return (
@@ -118,46 +207,29 @@ function ColorField({ label, value, onChange }) {
   )
 }
 
-/* ============================
-   FilePickerRow (logo / favicon)
-   ============================ */
 function FilePickerRow({ label, value, fileKey, previewSize = 32, setField, setFiles }) {
   const ref = React.useRef(null)
   const [localPreview, setLocalPreview] = React.useState(null)
 
   const pick = () => ref.current?.click()
-
   const onFile = (e) => {
     const f = e.target.files?.[0]
     if (!f) return
-    // Guardar el File para enviar en el PUT
     setFiles(prev => ({ ...prev, [fileKey]: f }))
-
-    // ObjectURL para ver el cambio ANTES de guardar
     const url = URL.createObjectURL(f)
     setLocalPreview(url)
-
-    // Actualizar el form para que el <Preview /> lo muestre al instante
     setField(fileKey + 'Url', url)
   }
-
-  React.useEffect(() => {
-    return () => { if (localPreview) URL.revokeObjectURL(localPreview) }
-  }, [localPreview])
+  React.useEffect(() => () => { if (localPreview) URL.revokeObjectURL(localPreview) }, [localPreview])
 
   const previewSrc = localPreview || value
-
   return (
     <Stack spacing={1}>
       <Typography variant="caption" color="text.secondary">{label}</Typography>
       <Stack direction="row" spacing={1} alignItems="center">
         {previewSrc
-          ? <Box
-            component="img"
-            src={previewSrc}
-            alt={label}
-            sx={{ width: previewSize, height: previewSize, objectFit: 'contain', border: '1px solid #eee', borderRadius: 1 }}
-          />
+          ? <Box component="img" src={previewSrc} alt={label}
+            sx={{ width: previewSize, height: previewSize, objectFit: 'contain', border: '1px solid #eee', borderRadius: 1 }} />
           : <Avatar variant="rounded" sx={{ width: previewSize, height: previewSize }}>
             <ImageIcon fontSize="small" />
           </Avatar>
@@ -165,18 +237,12 @@ function FilePickerRow({ label, value, fileKey, previewSize = 32, setField, setF
         <Button size="small" variant="outlined" onClick={pick}>Elegir archivo</Button>
         <TextField
           value={value}
-          onChange={(e) => setField(fileKey + 'Url', e.target.value)} // logoUrl / faviconUrl
+          onChange={(e) => setField(fileKey + 'Url', e.target.value)}
           placeholder="https://..."
           fullWidth
           size="small"
           sx={{ '& .MuiInputBase-root': { alignItems: 'center' } }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <ImageIcon fontSize="small" />
-              </InputAdornment>
-            )
-          }}
+          InputProps={{ startAdornment: <InputAdornment position="start"><ImageIcon fontSize="small" /></InputAdornment> }}
         />
       </Stack>
       <input ref={ref} type="file" accept="image/*" hidden onChange={onFile} />
@@ -184,16 +250,13 @@ function FilePickerRow({ label, value, fileKey, previewSize = 32, setField, setF
   )
 }
 
-/* ============================
-   PREVIEW (memo)
-   ============================ */
 const Preview = React.memo(function Preview({ cfg }) {
   const stars = Math.max(0, Math.min(5, Number(cfg.stars) || 0))
   const filled = Array.from({ length: stars })
   const empty = Array.from({ length: 5 - stars })
 
   return (
-    <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 3, boxShadow: 4 }}>
+    <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 1, boxShadow: 4 }}>
       {/* Navbar */}
       <Box sx={{ px: 2, py: 1.25, bgcolor: cfg.primaryColor, color: '#fff', display: 'flex', alignItems: 'center', gap: 1 }}>
         {cfg.logoUrl ? (
@@ -278,16 +341,31 @@ const Preview = React.memo(function Preview({ cfg }) {
   )
 })
 
-/* ============================
-   PAGE
-   ============================ */
+function useGoogleFont(selectedCss) {
+  const selected = FONT_OPTIONS.find(f => f.css === selectedCss)
+  React.useEffect(() => {
+    const id = 'wc-google-font'
+    const prev = document.getElementById(id)
+    if (prev) prev.remove()
+    if (!selected?.google) return
+    const link = document.createElement('link')
+    link.id = id
+    link.rel = 'stylesheet'
+    link.href = `https://fonts.googleapis.com/css2?${selected.google}&display=swap`
+    document.head.appendChild(link)
+    return () => { link.remove() }
+  }, [selected?.google])
+}
+
 export default function SiteConfig() {
   const [form, setForm] = React.useState(() => fromServer({}))
   const [loading, setLoading] = React.useState(true)
   const [saving, setSaving] = React.useState(false)
   const [error, setError] = React.useState(null)
   const [savedMsg, setSavedMsg] = React.useState(null)
-  const [files, setFiles] = React.useState({ logo: null, favicon: null }) // archivos pendientes
+  const [files, setFiles] = React.useState({ logo: null, favicon: null })
+  const [fontKey, setFontKey] = React.useState(() => findFontKeyByCss(fromServer({}).fontFamily))
+  const [customFont, setCustomFont] = React.useState('')
 
   // Carga inicial
   React.useEffect(() => {
@@ -297,7 +375,12 @@ export default function SiteConfig() {
           setError(null); setLoading(true)
           const data = await apiGetSiteConfig()
           if (!mounted) return
-          setForm(fromServer(data))
+          const next = fromServer(data)
+          // Detectar fuente por primera familia y normalizar si no es custom
+          const key = findFontKeyByCss(next.fontFamily)
+          setForm(key !== 'custom' ? { ...next, fontFamily: fontByKey(key)?.css || next.fontFamily } : next)
+          setFontKey(key)
+          if (key === 'custom') setCustomFont(next.fontFamily || '')
         } catch (e) {
           setError(e?.message || 'No se pudo cargar la configuración')
         } finally {
@@ -307,6 +390,9 @@ export default function SiteConfig() {
     return () => { mounted = false }
   }, [])
 
+  // Carga Google Font si aplica
+  useGoogleFont(form.fontFamily)
+
   // Handlers
   const setField = React.useCallback((name, value) => {
     setForm(prev => ({ ...prev, [name]: value }))
@@ -315,22 +401,40 @@ export default function SiteConfig() {
     setForm(prev => ({ ...prev, social: { ...prev.social, [name]: value } }))
   }, [])
 
+  // Cambio de font por select
+  const handleFontChange = (e) => {
+    const key = e.target.value
+    setFontKey(key)
+    if (key === 'custom') {
+      setField('fontFamily', customFont || '')
+      return
+    }
+    const f = fontByKey(key)
+    if (f) setField('fontFamily', f.css)
+  }
+  const handleCustomFont = (v) => {
+    setCustomFont(v)
+    if (fontKey === 'custom') setField('fontFamily', v)
+  }
+
   // Preview sin romper foco
   const deferred = React.useDeferredValue(form)
 
-  // Guardar (misma ruta PUT; enviamos multipart con archivos opcionales)
+  // Guardar
   const handleSave = React.useCallback(async () => {
     try {
       setSaving(true); setError(null)
       const payload = toServer(form)
-
-      // Si hay archivos, el server setea las URLs finales; no enviemos los blob:
       if (files.logo) delete payload.logoUrl
       if (files.favicon) delete payload.faviconUrl
-
       const updated = await apiUpdateSiteConfig(payload, files)
       const next = fromServer(updated || payload)
-      setForm(next)
+      // Recalcular key tras guardar (por si el server tocó la cadena)
+      const key = findFontKeyByCss(next.fontFamily)
+      const normalized = key !== 'custom' ? (fontByKey(key)?.css || next.fontFamily) : next.fontFamily
+      setForm({ ...next, fontFamily: normalized })
+      setFontKey(key)
+      if (key === 'custom') setCustomFont(normalized || '')
       setFiles({ logo: null, favicon: null })
       setSavedMsg('Configuración guardada')
       setTimeout(() => setSavedMsg(null), 1600)
@@ -345,7 +449,7 @@ export default function SiteConfig() {
     <Grid container spacing={2}>
       {/* FORM */}
       <Grid item xs={12} md={6}>
-        <Paper sx={{ p: 2, borderRadius: 3 }}>
+        <Paper sx={{ p: 2, borderRadius: 1 }}>
           <Stack spacing={2}>
             <Typography variant="h6">Configuración del sitio</Typography>
 
@@ -354,24 +458,12 @@ export default function SiteConfig() {
             {savedMsg && <Alert severity="success">{savedMsg}</Alert>}
 
             {/* Colores */}
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={2}
-              alignItems="flex-start"
-            >
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
               <Box sx={{ flex: 1 }}>
-                <ColorField
-                  label="Color primario"
-                  value={form.primaryColor}
-                  onChange={(v) => setField('primaryColor', v)}
-                />
+                <ColorField label="Color primario" value={form.primaryColor} onChange={(v) => setField('primaryColor', v)} />
               </Box>
               <Box sx={{ flex: 1 }}>
-                <ColorField
-                  label="Color secundario"
-                  value={form.secondaryColor}
-                  onChange={(v) => setField('secondaryColor', v)}
-                />
+                <ColorField label="Color secundario" value={form.secondaryColor} onChange={(v) => setField('secondaryColor', v)} />
               </Box>
             </Stack>
 
@@ -393,15 +485,38 @@ export default function SiteConfig() {
               setFiles={setFiles}
             />
 
-            {/* Tipografía */}
-            <TextField
-              label="Tipografía (CSS font-family)"
-              value={form.fontFamily}
-              onChange={(e) => setField('fontFamily', e.target.value)}
-              fullWidth
-              sx={{ '& .MuiInputBase-root': { alignItems: 'center' } }}
-              InputProps={{ startAdornment: <InputAdornment position="start"><FontDownloadIcon fontSize="small" /></InputAdornment> }}
-            />
+            {/* Tipografía: Select + (opcional) Custom */}
+            <FormControl fullWidth>
+              <InputLabel id="font-select-label">
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <FontDownloadIcon fontSize="small" /> <span>Tipografía</span>
+                </Stack>
+              </InputLabel>
+              <Select
+                labelId="font-select-label"
+                value={fontKey}
+                label="Tipografía"
+                onChange={handleFontChange}
+              >
+                {FONT_OPTIONS.map(f => (
+                  <MenuItem key={f.key} value={f.key} sx={{ fontFamily: f.css }}>
+                    {f.label}
+                  </MenuItem>
+                ))}
+                <MenuItem value="custom">Personalizada…</MenuItem>
+              </Select>
+              <FormHelperText>Familia CSS usada en el sitio</FormHelperText>
+            </FormControl>
+
+            {fontKey === 'custom' && (
+              <TextField
+                label="Tipografía personalizada (CSS font-family)"
+                value={customFont}
+                onChange={(e) => handleCustomFont(e.target.value)}
+                fullWidth
+                placeholder="Ej: 'DM Sans', system-ui, -apple-system, sans-serif"
+              />
+            )}
 
             {/* Estrellas */}
             <Stack>

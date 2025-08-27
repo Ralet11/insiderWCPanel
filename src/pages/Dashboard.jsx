@@ -1,13 +1,13 @@
+// src/pages/Dashboard.jsx
 import * as React from 'react'
 import {
   Box, Grid, Paper, Typography, Stack, Chip, Button, Divider,
   Avatar, CircularProgress, Snackbar
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
+import { apiFetch } from '../api/wcAuth'
 
-const API_URL = import.meta.env.VITE_API_URL
-const TENANT = import.meta.env.VITE_TENANT_DOMAIN || window.location.host
-const TOKEN_KEY = 'panel_jwt'
+const TENANT = window.location.host
 
 export default function Dashboard() {
   const [loading, setLoading] = React.useState(true)
@@ -16,44 +16,15 @@ export default function Dashboard() {
   const [cfg, setCfg] = React.useState(null)
   const [copied, setCopied] = React.useState(false)
 
-  const token = () => sessionStorage.getItem(TOKEN_KEY)
-
-  const handle = async (res) => {
-    if (res.ok) {
-      const ct = res.headers.get('content-type') || ''
-      return ct.includes('application/json') ? res.json() : res.text()
-    }
-    let msg = `HTTP ${res.status}`
-    try {
-      const ct = res.headers.get('content-type') || ''
-      if (ct.includes('application/json')) {
-        const j = await res.json(); msg = j.error || j.message || msg
-      } else {
-        const t = await res.text(); msg = t || msg
-      }
-    } catch { }
-    throw new Error(msg)
-  }
-
   React.useEffect(() => {
     let alive = true
       ; (async () => {
         setLoading(true); setError('')
         try {
-          // 1) me (privado)
-          const meRes = await fetch(`${API_URL}/tenants/webconstructor/me`, {
-            headers: {
-              'Authorization': `Bearer ${token()}`,
-              'X-Tenant-Domain': TENANT
-            }
-          })
-          const meData = await handle(meRes)
-
-          // 2) config público (para preview)
-          const cfgRes = await fetch(`${API_URL}/tenants/webconstructor/site/config`, {
-            headers: { 'X-Tenant-Domain': TENANT }
-          })
-          const cfgData = await handle(cfgRes)
+          // 1) Usuario actual (privado) — apiFetch maneja 401/403 y redirige a /login
+          const meData = await apiFetch('/tenants/webconstructor/me')
+          // 2) Config pública (para preview)
+          const cfgData = await apiFetch('/tenants/webconstructor/site/config')
 
           if (!alive) return
           setMe(meData)
@@ -95,7 +66,7 @@ export default function Dashboard() {
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
-    } catch { }
+    } catch { /* ignore */ }
   }
 
   return (
@@ -152,7 +123,6 @@ export default function Dashboard() {
             <Typography variant="caption" color="text.secondary">Atajos</Typography>
             <Stack direction="row" spacing={1.5} sx={{ mt: 1 }}>
               <Button size="small" component={RouterLink} to="/site-config">Configurar sitio</Button>
-              <Button size="small" variant="outlined" component={RouterLink} to="/users">Usuarios</Button>
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
               Accede rápido a las secciones clave

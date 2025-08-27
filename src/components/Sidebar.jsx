@@ -1,6 +1,5 @@
 import { Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Divider, Typography } from '@mui/material'
 import DashboardIcon from '@mui/icons-material/Dashboard'
-import GroupIcon from '@mui/icons-material/Group'
 import SettingsIcon from '@mui/icons-material/Settings'
 import CreditCardIcon from '@mui/icons-material/CreditCard'
 import { NavLink, useLocation } from 'react-router-dom'
@@ -8,8 +7,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 const items = [
   { to: '/', icon: <DashboardIcon />, label: 'Dashboard' },
   { to: '/site-config', icon: <SettingsIcon />, label: 'Configuración del sitio' },
-  { to: '/card', icon: <CreditCardIcon />, label: 'Operator' },
-  { to: '/users', icon: <GroupIcon />, label: 'Usuarios' },
+  { to: '/card', icon: <CreditCardIcon />, label: 'Operator' }
 ]
 
 export default function Sidebar({ open, onClose, width = 272 }) {
